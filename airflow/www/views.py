@@ -72,7 +72,7 @@ from pygments.formatters import HtmlFormatter
 from sqlalchemy import Date, and_, case, desc, func, inspect, or_, select, union_all
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
-from wtforms import SelectField, validators
+from wtforms import BooleanField, SelectField, validators
 
 import airflow
 from airflow import models, plugins_manager, settings
@@ -4980,9 +4980,17 @@ class PoolModelView(AirflowModelView):
         permissions.ACTION_CAN_ACCESS_MENU,
     ]
 
-    list_columns = ["pool", "slots", "running_slots", "queued_slots", "scheduled_slots"]
-    add_columns = ["pool", "slots", "description"]
-    edit_columns = ["pool", "slots", "description"]
+    list_columns = ["pool", "slots", "running_slots", "queued_slots", "scheduled_slots", "deferred_slots"]
+    add_columns = ["pool", "slots", "description", "include_deferred"]
+    edit_columns = ["pool", "slots", "description", "include_deferred"]
+
+    # include_deferred is non-nullable, but as a checkbox in the resulting form we want to allow it unchecked
+    include_deferred_field = BooleanField(
+        validators=[validators.Optional()],
+        description="Check to include deferred tasks when calculating open pool slots.",
+    )
+    edit_form_extra_fields = {"include_deferred": include_deferred_field}
+    add_form_extra_fields = {"include_deferred": include_deferred_field}
 
     base_order = ("pool", "asc")
 
