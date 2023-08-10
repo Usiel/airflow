@@ -25,6 +25,7 @@ from typing import Any, AsyncIterator
 
 import pytz
 from kubernetes_asyncio.client.models import V1Pod
+from pendulum import DateTime
 
 from airflow.exceptions import AirflowProviderDeprecationWarning
 from airflow.providers.cncf.kubernetes.hooks.kubernetes import AsyncKubernetesHook
@@ -85,6 +86,7 @@ class KubernetesPodTrigger(BaseTrigger):
         startup_timeout: int = 120,
         on_finish_action: str = "delete_pod",
         should_delete_pod: bool | None = None,
+        last_logs_read_at: float | None = None,
     ):
         super().__init__()
         self.pod_name = pod_name
@@ -98,6 +100,7 @@ class KubernetesPodTrigger(BaseTrigger):
         self.in_cluster = in_cluster
         self.get_logs = get_logs
         self.startup_timeout = startup_timeout
+        self.last_logs_read_at = last_logs_read_at
 
         if should_delete_pod is not None:
             warnings.warn(
@@ -113,7 +116,6 @@ class KubernetesPodTrigger(BaseTrigger):
             self.should_delete_pod = self.on_finish_action == OnFinishAction.DELETE_POD
 
         self._hook: AsyncKubernetesHook | None = None
-        self._since_time = None
 
     def serialize(self) -> tuple[str, dict[str, Any]]:
         """Serializes KubernetesCreatePodTrigger arguments and classpath."""
@@ -133,6 +135,7 @@ class KubernetesPodTrigger(BaseTrigger):
                 "trigger_start_time": self.trigger_start_time,
                 "should_delete_pod": self.should_delete_pod,
                 "on_finish_action": self.on_finish_action.value,
+                "last_logs_read_at": self.last_logs_read_at,
             },
         )
 
@@ -165,6 +168,14 @@ class KubernetesPodTrigger(BaseTrigger):
                     return
                 elif self.should_wait(pod_phase=pod_status, container_state=container_state):
                     self.log.info("Container is not completed and still working.")
+
+                    if self.get_logs:
+                        await self._get_async_hook().read_logs(
+                            name=self.pod_name,
+                            namespace=self.pod_namespace,
+                            since_time=DateTime.fromtimestamp(self.last_logs_read_at),
+                        )
+                        self.last_logs_read_at = DateTime.utcnow().timestamp()
 
                     if pod_status == PodPhase.PENDING and container_state == ContainerState.UNDEFINED:
                         delta = datetime.now(tz=pytz.UTC) - self.trigger_start_time

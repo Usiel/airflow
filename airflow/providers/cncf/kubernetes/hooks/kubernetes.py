@@ -18,15 +18,18 @@ from __future__ import annotations
 
 import contextlib
 import json
+import math
 import tempfile
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Generator
 
+import pendulum
 from asgiref.sync import sync_to_async
 from kubernetes import client, config, watch
 from kubernetes.client.models import V1Pod
 from kubernetes.config import ConfigException
 from kubernetes_asyncio import client as async_client, config as async_config
+from pendulum import DateTime
 from urllib3.exceptions import HTTPError
 
 from airflow.exceptions import AirflowException, AirflowNotFoundException
@@ -584,17 +587,17 @@ class AsyncKubernetesHook(KubernetesHook):
                 if e.status != 404:
                     raise
 
-    async def read_logs(self, name: str, namespace: str):
+    async def read_logs(self, name: str, namespace: str, since_time: DateTime | None = None):
         """
         Reads logs inside the pod while starting containers inside.
 
         All the logs will be outputted with its timestamp to track
         the logs after the execution of the pod is completed. The
-        method is used for async output of the logs only in the pod
-        failed it execution or the task was cancelled by the user.
+        method is used for async output of the logs.
 
         :param name: Name of the pod.
         :param namespace: Name of the pod's namespace.
+        :param since_time: Return logs since time.
         """
         async with self.get_conn() as connection:
             try:
@@ -603,6 +606,9 @@ class AsyncKubernetesHook(KubernetesHook):
                     name=name,
                     namespace=namespace,
                     follow=False,
+                    since_seconds=(
+                        (math.ceil((pendulum.now() - since_time).total_seconds()) if since_time else None),
+                    ),
                     timestamps=True,
                 )
                 logs = logs.splitlines()
