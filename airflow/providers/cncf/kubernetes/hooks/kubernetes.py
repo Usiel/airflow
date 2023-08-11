@@ -607,7 +607,7 @@ class AsyncKubernetesHook(KubernetesHook):
                     namespace=namespace,
                     follow=False,
                     since_seconds=(
-                        (math.ceil((pendulum.now() - since_time).total_seconds()) if since_time else None),
+                        math.ceil((pendulum.now() - since_time).total_seconds()) if since_time else None
                     ),
                     timestamps=True,
                 )
