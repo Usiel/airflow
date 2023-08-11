@@ -602,13 +602,15 @@ class AsyncKubernetesHook(KubernetesHook):
         async with self.get_conn() as connection:
             try:
                 v1_api = async_client.CoreV1Api(connection)
+                since_seconds = (
+                    math.ceil((pendulum.now() - since_time).total_seconds()) if since_time else None
+                )
+                self.log.info("Getting logs with since_seconds=%s", since_seconds)
                 logs = await v1_api.read_namespaced_pod_log(
                     name=name,
                     namespace=namespace,
                     follow=False,
-                    since_seconds=(
-                        math.ceil((pendulum.now() - since_time).total_seconds()) if since_time else None
-                    ),
+                    since_seconds=since_seconds,
                     timestamps=True,
                 )
                 logs = logs.splitlines()
