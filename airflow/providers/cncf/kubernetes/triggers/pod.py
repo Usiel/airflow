@@ -26,6 +26,7 @@ from typing import Any, AsyncIterator
 import pytz
 from kubernetes_asyncio.client.models import V1Pod
 from pendulum import DateTime
+from pendulum.tz import get_local_timezone
 
 from airflow.exceptions import AirflowProviderDeprecationWarning
 from airflow.providers.cncf.kubernetes.hooks.kubernetes import AsyncKubernetesHook
@@ -190,7 +191,9 @@ class KubernetesPodTrigger(BaseTrigger):
                             await self._get_async_hook().read_logs(
                                 name=self.pod_name,
                                 namespace=self.pod_namespace,
-                                since_time=DateTime.fromtimestamp(self.last_logs_read_at)
+                                since_time=DateTime.fromtimestamp(
+                                    self.last_logs_read_at, get_local_timezone()
+                                )
                                 if self.last_logs_read_at
                                 else None,
                             )
