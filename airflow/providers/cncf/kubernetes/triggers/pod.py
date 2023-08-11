@@ -156,6 +156,16 @@ class KubernetesPodTrigger(BaseTrigger):
                 container_state = self.define_container_state(pod)
                 self.log.debug("Container %s status: %s", self.base_container_name, container_state)
 
+                if self.get_logs:
+                    await self._get_async_hook().read_logs(
+                        name=self.pod_name,
+                        namespace=self.pod_namespace,
+                        since_time=DateTime.fromtimestamp(self.last_logs_read_at)
+                        if self.last_logs_read_at
+                        else None,
+                    )
+                    self.last_logs_read_at = DateTime.utcnow().timestamp()
+
                 if container_state == ContainerState.TERMINATED:
                     yield TriggerEvent(
                         {
@@ -168,14 +178,6 @@ class KubernetesPodTrigger(BaseTrigger):
                     return
                 elif self.should_wait(pod_phase=pod_status, container_state=container_state):
                     self.log.info("Container is not completed and still working.")
-
-                    if self.get_logs:
-                        await self._get_async_hook().read_logs(
-                            name=self.pod_name,
-                            namespace=self.pod_namespace,
-                            since_time=DateTime.fromtimestamp(self.last_logs_read_at),
-                        )
-                        self.last_logs_read_at = DateTime.utcnow().timestamp()
 
                     if pod_status == PodPhase.PENDING and container_state == ContainerState.UNDEFINED:
                         delta = datetime.now(tz=pytz.UTC) - self.trigger_start_time
@@ -208,12 +210,6 @@ class KubernetesPodTrigger(BaseTrigger):
                     return
             except CancelledError:
                 # That means that task was marked as failed
-                if self.get_logs:
-                    self.log.info("Outputting container logs...")
-                    await self._get_async_hook().read_logs(
-                        name=self.pod_name,
-                        namespace=self.pod_namespace,
-                    )
                 if self.on_finish_action == OnFinishAction.DELETE_POD:
                     self.log.info("Deleting pod...")
                     await self._get_async_hook().delete_pod(
