@@ -3484,13 +3484,17 @@ class Airflow(AirflowBaseView):
         with create_session() as session:
             query = select(DagRun).where(DagRun.dag_id == dag.dag_id, DagRun.execution_date <= base_date)
 
-        run_type = request.args.get("run_type")
-        if run_type:
-            query = query.where(DagRun.run_type == run_type)
+        # TODO: Figure out how to make this consistent:
+        # TODO:     - FilterBar component sends ...&run_type[]=running&run_type[]=failed...
+        # TODO:     - window.location is set to ...&run_type=running&run_type=failed...
+        run_types = request.args.getlist("run_type") or request.args.getlist("run_type[]")
+        if run_types:
+            query = query.where(DagRun.run_type.in_(run_types))
 
-        run_state = request.args.get("run_state")
-        if run_state:
-            query = query.where(DagRun.state == run_state)
+        # TODO: See above
+        run_states = request.args.getlist("run_state") or request.args.getlist("run_state[]")
+        if run_states:
+            query = query.where(DagRun.state.in_(run_states))
 
         dag_runs = wwwutils.sorted_dag_runs(
             query, ordering=dag.timetable.run_ordering, limit=num_runs, session=session

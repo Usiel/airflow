@@ -28,7 +28,8 @@ import type {
 } from "elkjs";
 import type * as API from "./api-generated";
 
-type RunState = "success" | "running" | "queued" | "failed";
+export const runStates = ["success", "running", "queued", "failed"]
+type RunState = typeof runStates[number]
 
 type TaskState =
   | RunState

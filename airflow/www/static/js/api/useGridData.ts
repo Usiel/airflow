@@ -73,8 +73,8 @@ const useGridData = () => {
     filters: {
       baseDate,
       numRuns,
-      runType,
-      runState,
+      runTypes,
+      runStates,
       root,
       filterDownstream,
       filterUpstream,
@@ -86,8 +86,8 @@ const useGridData = () => {
       "gridData",
       baseDate,
       numRuns,
-      runType,
-      runState,
+      runTypes,
+      runStates,
       root,
       filterUpstream,
       filterDownstream,
@@ -100,8 +100,8 @@ const useGridData = () => {
         [DAG_ID_PARAM]: dagId,
         [BASE_DATE_PARAM]: baseDate === now ? undefined : baseDate,
         [NUM_RUNS_PARAM]: numRuns,
-        [RUN_TYPE_PARAM]: runType,
-        [RUN_STATE_PARAM]: runState,
+        [RUN_TYPE_PARAM]: runTypes,
+        [RUN_STATE_PARAM]: runStates,
       };
       const response = await axios.get<AxiosResponse, GridData>(gridDataUrl, {
         params,

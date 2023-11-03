@@ -27,6 +27,8 @@ import AutoRefresh from "src/components/AutoRefresh";
 import { useTimezone } from "src/context/timezone";
 import { isoFormatWithoutTZ } from "src/datetime_utils";
 import useFilters from "src/dag/useFilters";
+import MultiSelect from "src/components/MultiSelect";
+import type {Size} from "chakra-react-select";
 
 declare const filtersOptions: {
   dagStates: RunState[];
@@ -34,6 +36,15 @@ declare const filtersOptions: {
   runTypes: DagRun["runType"][];
   taskStates: TaskState[];
 };
+
+const dagStateOptions = filtersOptions.dagStates.map((state)  => ({
+  label: state,
+  value: state,
+}));
+const runTypeOptions = filtersOptions.runTypes.map((type) => ({
+  label: type,
+  value: type,
+}));
 
 const FilterBar = () => {
   const {
@@ -51,7 +62,7 @@ const FilterBar = () => {
   // @ts-ignore
   const formattedTime = time.tz(timezone).format(isoFormatWithoutTZ);
 
-  const inputStyles = { backgroundColor: "white", size: "lg" };
+  const inputStyles: { backgroundColor: string; size: Size } = { backgroundColor: "white", size: "lg" };
 
   return (
     <Flex
@@ -66,7 +77,7 @@ const FilterBar = () => {
             {...inputStyles}
             type="datetime-local"
             value={formattedTime || ""}
-            onChange={(e) => onBaseDateChange(e.target.value)}
+            onChange={(e) => onBaseDateChange([e.target.value])}
           />
         </Box>
         <Box px={2}>
@@ -74,7 +85,7 @@ const FilterBar = () => {
             {...inputStyles}
             placeholder="Runs"
             value={filters.numRuns || ""}
-            onChange={(e) => onNumRunsChange(e.target.value)}
+            onChange={(e) => onNumRunsChange([e.target.value])}
           >
             {filtersOptions.numRuns.map((value) => (
               <option value={value} key={value}>
@@ -83,38 +94,39 @@ const FilterBar = () => {
             ))}
           </Select>
         </Box>
-        <Box px={2}>
-          <Select
+        <Box px={2} minWidth="160px">
+          {
+            /*
+            TODO: Styling: Make MultiSelect blend in with the datetime and runs filter
+            TODO: Handle case: 2 options selected, remove 1 option -> should trigger a new request
+            */
+          }
+          <MultiSelect
+            isMulti
+            selectedOptionStyle="check"
+            placeholder="All Run Types"
+            tagVariant="solid"
+            isClearable={false}
+            hideSelectedOptions
             {...inputStyles}
-            value={filters.runType || ""}
-            onChange={(e) => onRunTypeChange(e.target.value)}
-          >
-            <option value="" key="all">
-              All Run Types
-            </option>
-            {filtersOptions.runTypes.map((value) => (
-              <option value={value.toString()} key={value}>
-                {value}
-              </option>
-            ))}
-          </Select>
+            options={runTypeOptions}
+            onChange={(options) => onRunTypeChange(options.map(o => o.value))}
+          />
         </Box>
         <Box />
-        <Box px={2}>
-          <Select
+        <Box px={2} minWidth="160px">
+          {/* TODO: See above */}
+          <MultiSelect
+            isMulti
+            selectedOptionStyle="check"
+            placeholder="All State Types"
+            tagVariant="solid"
+            isClearable={false}
+            hideSelectedOptions
             {...inputStyles}
-            value={filters.runState || ""}
-            onChange={(e) => onRunStateChange(e.target.value)}
-          >
-            <option value="" key="all">
-              All Run States
-            </option>
-            {filtersOptions.dagStates.map((value) => (
-              <option value={value} key={value}>
-                {value}
-              </option>
-            ))}
-          </Select>
+            options={dagStateOptions}
+            onChange={(options) => onRunStateChange(options.map(o => o.value))}
+          />
         </Box>
         <Box px={2}>
           <Button

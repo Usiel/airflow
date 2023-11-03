@@ -30,8 +30,8 @@ export interface Filters {
   filterDownstream: boolean | undefined;
   baseDate: string | null;
   numRuns: string | null;
-  runType: string | null;
-  runState: string | null;
+  runTypes: string[] | null;
+  runStates: string[] | null;
 }
 
 export interface FilterTasksProps {
@@ -41,10 +41,10 @@ export interface FilterTasksProps {
 }
 
 export interface UtilFunctions {
-  onBaseDateChange: (value: string) => void;
-  onNumRunsChange: (value: string) => void;
-  onRunTypeChange: (value: string) => void;
-  onRunStateChange: (value: string) => void;
+  onBaseDateChange: (value: string[]) => void;
+  onNumRunsChange: (value: string[]) => void;
+  onRunTypeChange: (value: string[]) => void;
+  onRunStateChange: (value: string[]) => void;
   onFilterTasksChange: (args: FilterTasksProps) => void;
   clearFilters: () => void;
   resetRoot: () => void;
@@ -83,16 +83,17 @@ const useFilters = (): FilterHookReturn => {
   const baseDate = searchParams.get(BASE_DATE_PARAM) || now;
   const numRuns =
     searchParams.get(NUM_RUNS_PARAM) || defaultDagRunDisplayNumber.toString();
-  const runType = searchParams.get(RUN_TYPE_PARAM);
-  const runState = searchParams.get(RUN_STATE_PARAM);
+  const runTypes = searchParams.getAll(RUN_TYPE_PARAM);
+  const runStates = searchParams.getAll(RUN_STATE_PARAM);
 
   const makeOnChangeFn =
     (paramName: string, formatFn?: (arg: string) => string) =>
-    (value: string) => {
-      const formattedValue = formatFn ? formatFn(value) : value;
+    (values: string[]) => {
+      const formattedValues = formatFn ? values.map(v => formatFn(v)) : values;
       const params = new URLSearchParamsWrapper(searchParams);
 
-      if (formattedValue) params.set(paramName, formattedValue);
+      params.delete(paramName)
+      if (formattedValues) formattedValues.forEach(v => params.append(paramName, v))
       else params.delete(paramName);
 
       setSearchParams(params);
@@ -153,8 +154,8 @@ const useFilters = (): FilterHookReturn => {
       filterDownstream,
       baseDate,
       numRuns,
-      runType,
-      runState,
+      runTypes,
+      runStates,
     },
     onBaseDateChange,
     onNumRunsChange,
